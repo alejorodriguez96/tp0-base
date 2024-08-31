@@ -26,7 +26,10 @@ SERVER_SERVICE = {
     ],
     "networks": [
         NETWORK_NAME
-    ]
+    ],
+    "volumes": [
+        "${PWD}/server/config.ini:/config.ini",
+    ],
 }
 
 #   client1:
@@ -63,7 +66,10 @@ def generar_client_service(nombre: str):
         ],
         "depends_on": [
             "server"
-        ]
+        ],
+        "volumes": [
+            "${PWD}/client/config.yaml:/config.yaml",
+        ],
     }
 
 def escribir_yaml(compose: dict, file: TextIO, indent: int = 0) -> None:
