@@ -50,6 +50,12 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
+// Close gracefully closes the client connection
+func (c *Client) Close() {
+	log.Debugf("Client gracefully quitting")
+	c.conn.Close()
+}
+
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
 	// There is an autoincremental msgID to identify every message sent

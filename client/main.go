@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"time"
+	"syscall"
+	"os/signal"
 
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
@@ -111,5 +113,19 @@ func main() {
 	}
 
 	client := common.NewClient(clientConfig)
+	
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGTERM)
+	go func() {
+		signal := <-c
+		switch signal {
+		case syscall.SIGTERM:
+			log.Debugf("Received SIGTERM signal. Closing client")
+			client.Close()
+			close(c)
+			os.Exit(0)
+		}
+	}()
+	
 	client.StartClientLoop()
 }
