@@ -32,19 +32,7 @@ SERVER_SERVICE = {
     ],
 }
 
-#   client1:
-#     container_name: client1
-#     image: client:latest
-#     entrypoint: /client
-#     environment:
-#       - CLI_ID=1
-#       - CLI_LOG_LEVEL=DEBUG
-#     networks:
-#       - testing_net
-#     depends_on:
-#       - server
-
-def generar_client_service(nombre: str):
+def generar_client_service(cliente_id: int):
     """Genera la configuración para ejecutar un servicio de cliente.
     
     Args:
@@ -54,12 +42,17 @@ def generar_client_service(nombre: str):
         dict: Configuración del servicio.
     """
     return {
-        "container_name": nombre,
+        "container_name": f"client{cliente_id}",
         "image": "client:latest",
         "entrypoint": "/client",
         "environment": [
-            "CLI_ID=1",
-            "CLI_LOG_LEVEL=DEBUG"
+            f"CLI_ID={cliente_id}",
+            "CLI_LOG_LEVEL=DEBUG",
+            "NOMBRE=${NOMBRE}",
+            "APELLIDO=${APELLIDO}",
+            "DOCUMENTO=${DOCUMENTO}",
+            "NACIMIENTO=${NACIMIENTO}",
+            "NUMERO=${NUMERO}",
         ],
         "networks": [
             NETWORK_NAME
@@ -109,7 +102,7 @@ def generar_compose(path_archivo: str, clientes: int):
     }
     for i in range(clientes):
         nombre = f"client{i + 1}"
-        services[nombre] = generar_client_service(nombre)
+        services[nombre] = generar_client_service(i + 1)
     compose = {
         "name": "tp0",
         "services": services,

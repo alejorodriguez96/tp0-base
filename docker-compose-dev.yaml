@@ -1,34 +1,163 @@
 name: tp0
-services:
-  server:
+
+services: 
+  server: 
     container_name: server
+
     image: server:latest
+
     entrypoint: python3 /main.py
-    environment:
+
+    environment: 
       - PYTHONUNBUFFERED=1
       - LOGGING_LEVEL=DEBUG
-    networks:
+
+    networks: 
       - testing_net
-    volumes:
+
+    volumes: 
       - ${PWD}/server/config.ini:/config.ini
 
-  client1:
+
+  client1: 
     container_name: client1
+
     image: client:latest
+
     entrypoint: /client
-    environment:
+
+    environment: 
       - CLI_ID=1
       - CLI_LOG_LEVEL=DEBUG
-    networks:
+      - NOMBRE=${NOMBRE}
+      - APELLIDO=${APELLIDO}
+      - DOCUMENTO=${DOCUMENTO}
+      - NACIMIENTO=${NACIMIENTO}
+      - NUMERO=${NUMERO}
+
+    networks: 
       - testing_net
-    volumes:
-      - ${PWD}/client/config.yaml:/config.yaml
-    depends_on:
+
+    depends_on: 
       - server
 
-networks:
-  testing_net:
-    ipam:
+    volumes: 
+      - ${PWD}/client/config.yaml:/config.yaml
+
+
+  client2: 
+    container_name: client2
+
+    image: client:latest
+
+    entrypoint: /client
+
+    environment: 
+      - CLI_ID=2
+      - CLI_LOG_LEVEL=DEBUG
+      - NOMBRE=${NOMBRE}
+      - APELLIDO=${APELLIDO}
+      - DOCUMENTO=${DOCUMENTO}
+      - NACIMIENTO=${NACIMIENTO}
+      - NUMERO=${NUMERO}
+
+    networks: 
+      - testing_net
+
+    depends_on: 
+      - server
+
+    volumes: 
+      - ${PWD}/client/config.yaml:/config.yaml
+
+
+  client3: 
+    container_name: client3
+
+    image: client:latest
+
+    entrypoint: /client
+
+    environment: 
+      - CLI_ID=3
+      - CLI_LOG_LEVEL=DEBUG
+      - NOMBRE=${NOMBRE}
+      - APELLIDO=${APELLIDO}
+      - DOCUMENTO=${DOCUMENTO}
+      - NACIMIENTO=${NACIMIENTO}
+      - NUMERO=${NUMERO}
+
+    networks: 
+      - testing_net
+
+    depends_on: 
+      - server
+
+    volumes: 
+      - ${PWD}/client/config.yaml:/config.yaml
+
+
+  client4: 
+    container_name: client4
+
+    image: client:latest
+
+    entrypoint: /client
+
+    environment: 
+      - CLI_ID=4
+      - CLI_LOG_LEVEL=DEBUG
+      - NOMBRE=${NOMBRE}
+      - APELLIDO=${APELLIDO}
+      - DOCUMENTO=${DOCUMENTO}
+      - NACIMIENTO=${NACIMIENTO}
+      - NUMERO=${NUMERO}
+
+    networks: 
+      - testing_net
+
+    depends_on: 
+      - server
+
+    volumes: 
+      - ${PWD}/client/config.yaml:/config.yaml
+
+
+  client5: 
+    container_name: client5
+
+    image: client:latest
+
+    entrypoint: /client
+
+    environment: 
+      - CLI_ID=5
+      - CLI_LOG_LEVEL=DEBUG
+      - NOMBRE=${NOMBRE}
+      - APELLIDO=${APELLIDO}
+      - DOCUMENTO=${DOCUMENTO}
+      - NACIMIENTO=${NACIMIENTO}
+      - NUMERO=${NUMERO}
+
+    networks: 
+      - testing_net
+
+    depends_on: 
+      - server
+
+    volumes: 
+      - ${PWD}/client/config.yaml:/config.yaml
+
+
+
+networks: 
+  testing_net: 
+    ipam: 
       driver: default
-      config:
-        - subnet: 172.25.125.0/24
+
+      config: 
+        - {'subnet': '172.25.125.0/24'}
+
+
+
+
