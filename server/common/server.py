@@ -1,6 +1,7 @@
 import socket
 import logging
 import signal
+from common import protocol, serializer, utils, errors
 
 
 class Server:
@@ -43,14 +44,21 @@ class Server:
         client socket will also be closed
         """
         try:
-            # TODO: Modify the receive to avoid short-reads
-            msg = client_sock.recv(1024).rstrip()
-            addr = client_sock.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
-            # TODO: Modify the send to avoid short-writes
-            client_sock.send(msg)
-        except OSError as e:
-            logging.error("action: receive_message | result: fail | error: {e}")
+            msg = protocol.receive(client_sock)
+            logging.info(f"action: receive_message | result: success | msg: {msg}")
+            bet = serializer.deserialize_bet(msg)
+            utils.store_bets([bet])
+            logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")
+            protocol.send(client_sock, b'OK', protocol.MessageType.BET_ACK)
+            logging.info(f"action: send_message | result: success | msg: OK")
+        except errors.ProtocolReceiveError as e:
+            logging.error(f"action: receive_message | result: fail | error: {e}")
+        except errors.SerializationError as e:
+            logging.error(f"action: apuesta_almacenada | result: fail | error: {e}")
+        except errors.StorageError as e:
+            logging.error(f"action: apuesta_almacenada | result: fail | error: {e}")
+        except errors.ProtocolSendError as e:
+            logging.error(f"action: send_message | result: fail | error: {e}")
         finally:
             client_sock.close()
 
