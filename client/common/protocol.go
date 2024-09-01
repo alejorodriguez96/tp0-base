@@ -7,35 +7,32 @@ import (
 
 // Message types
 const (
-	SingleBet = iota
-	MultipleBet
+	SingleBet   = byte(0x01)
+	MultipleBet = byte(0x02)
+	Error       = byte(0x03)
+	BetACK      = byte(0x04)
 )
 
 // BetProtocol entity that encapsulates the communication protocol with the server
-type BetProtocol struct {
-	serializer *BetSerializer
-}
+type BetProtocol struct{}
 
 // NewProtocol Initializes a new protocol
 func NewBetProtocol() *BetProtocol {
-	return &BetProtocol{
-		serializer: NewBetSerializer(),
-	}
+	return &BetProtocol{}
 }
 
-// SendBet Sends a bet to the server
-func (p *BetProtocol) SendBet(conn net.Conn, bet *Bet) error {
-	serializedBet := p.serializer.Serialize(bet)
-	totalLength, err := lengthToBytes(len(serializedBet))
+// Send Sends a message to the server
+func (p *BetProtocol) Send(conn net.Conn, msg []byte, msgType byte) error {
+	totalLength, err := lengthToBytes(len(msg))
 	if err != nil {
 		return err
 	}
-	msg := []byte{SingleBet}
-	msg = append(msg, totalLength...)
-	msg = append(msg, serializedBet...)
-	remainingBytes := len(serializedBet) + 5
+	fullMsg := []byte{SingleBet}
+	fullMsg = append(fullMsg, totalLength...)
+	fullMsg = append(fullMsg, msg...)
+	remainingBytes := len(msg) + 5
 	for remainingBytes > 0 {
-		n, err := conn.Write(msg)
+		n, err := conn.Write(fullMsg)
 		if err != nil {
 			return err
 		}
@@ -44,20 +41,20 @@ func (p *BetProtocol) SendBet(conn net.Conn, bet *Bet) error {
 	return nil
 }
 
-// ReceiveBet Receives a bet from the server
-func (p *BetProtocol) ReceiveBet(conn net.Conn) (*Bet, error) {
+// Receive Receives a message from the server
+func (p *BetProtocol) Receive(conn net.Conn) ([]byte, []byte, error) {
 	var buffer []byte
 	// First read the message type and message length
 	tmp := make([]byte, 5)
 	_, err := conn.Read(tmp)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	buffer = append(buffer, tmp...)
-	//_msgType := buffer[0]
+	msgType := buffer[0]
 	msgLength, err := bytesToLength(buffer[1:])
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Read the rest of the message
@@ -68,14 +65,13 @@ func (p *BetProtocol) ReceiveBet(conn net.Conn) (*Bet, error) {
 		tmp := make([]byte, bytesToRead)
 		r, err := conn.Read(tmp)
 		if err == io.EOF && remaningBytes > 0 {
-			return nil, ErrInvalidMessage
+			return nil, nil, ErrInvalidMessage
 		}
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		buffer = append(buffer, tmp[:r]...)
 		remaningBytes -= r
 	}
-	// TODO: Deserialize according to the message type
-	return p.serializer.Deserialize(buffer)
+	return []byte{msgType}, buffer, nil
 }

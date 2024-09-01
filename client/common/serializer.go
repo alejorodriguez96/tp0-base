@@ -19,6 +19,8 @@ func NewBetSerializer() *BetSerializer { return &BetSerializer{} }
 // Serialize serializes a bet into a byte array
 func (s *BetSerializer) Serialize(bet *Bet) []byte {
 	var barray []byte
+	barray = append(barray, []byte(strconv.Itoa(bet.agencyID))...)
+	barray = append(barray, FieldSeparator)
 	barray = append(barray, []byte(bet.player.name)...)
 	barray = append(barray, FieldSeparator)
 	barray = append(barray, []byte(bet.player.lastname)...)
@@ -35,14 +37,18 @@ func (s *BetSerializer) Serialize(bet *Bet) []byte {
 func (s *BetSerializer) Deserialize(barray []byte) (*Bet, error) {
 	split := bytes.Split(barray, []byte{FieldSeparator})
 	player := Player{
-		name:      string(split[0]),
-		lastname:  string(split[1]),
-		document:  string(split[2]),
-		birthdate: string(split[3]),
+		name:      string(split[1]),
+		lastname:  string(split[2]),
+		document:  string(split[3]),
+		birthdate: string(split[4]),
 	}
-	number, err := strconv.Atoi(string(split[4]))
+	number, err := strconv.Atoi(string(split[5]))
 	if err != nil {
 		return nil, err
 	}
-	return NewBet(player, number), nil
+	agencyID, err := strconv.Atoi(string(split[0]))
+	if err != nil {
+		return nil, err
+	}
+	return NewBet(player, number, agencyID), nil
 }

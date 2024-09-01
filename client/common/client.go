@@ -14,6 +14,7 @@ var log = logging.MustGetLogger("log")
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
 	ID            string
+	NumericID     int
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
@@ -21,17 +22,19 @@ type ClientConfig struct {
 
 // Client Entity that encapsulates how
 type Client struct {
-	config   ClientConfig
-	conn     net.Conn
-	protocol *BetProtocol
+	config     ClientConfig
+	conn       net.Conn
+	protocol   *BetProtocol
+	serializer *BetSerializer
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
-		config:   config,
-		protocol: NewBetProtocol(),
+		config:     config,
+		protocol:   NewBetProtocol(),
+		serializer: NewBetSerializer(),
 	}
 	return client
 }
@@ -78,10 +81,12 @@ func (c *Client) StartClientLoop() {
 				birthdate: os.Getenv("NACIMIENTO"),
 			},
 			betNumber,
+			c.config.NumericID,
 		)
 
 		// Send the bet to the server
-		err := c.protocol.SendBet(c.conn, bet)
+		msg := c.serializer.Serialize(bet)
+		err := c.protocol.Send(c.conn, msg, SingleBet)
 		if err != nil {
 			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
 				c.config.ID,
@@ -89,7 +94,7 @@ func (c *Client) StartClientLoop() {
 			)
 			return
 		}
-		recvBet, err := c.protocol.ReceiveBet(c.conn)
+		msgType, _, err := c.protocol.Receive(c.conn)
 
 		if err != nil {
 			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
@@ -99,9 +104,17 @@ func (c *Client) StartClientLoop() {
 			return
 		}
 
+		if msgType[0] != BetACK {
+			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				"Invalid message type",
+			)
+			return
+		}
+
 		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
-			recvBet.player.document,
-			recvBet.number,
+			bet.player.document,
+			bet.number,
 		)
 
 		// Wait a time between sending one message and the next one

@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
-	"time"
-	"syscall"
 	"os/signal"
+	"strings"
+	"syscall"
+	"time"
 
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
@@ -108,12 +108,13 @@ func main() {
 	clientConfig := common.ClientConfig{
 		ServerAddress: v.GetString("server.address"),
 		ID:            v.GetString("id"),
+		NumericID:     v.GetInt("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
 	}
 
 	client := common.NewClient(clientConfig)
-	
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGTERM)
 	go func() {
@@ -126,6 +127,6 @@ func main() {
 			os.Exit(0)
 		}
 	}()
-	
+
 	client.StartClientLoop()
 }
