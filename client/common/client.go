@@ -1,9 +1,9 @@
 package common
 
 import (
-	"bufio"
-	"fmt"
 	"net"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/op/go-logging"
@@ -21,15 +21,17 @@ type ClientConfig struct {
 
 // Client Entity that encapsulates how
 type Client struct {
-	config ClientConfig
-	conn   net.Conn
+	config   ClientConfig
+	conn     net.Conn
+	protocol *BetProtocol
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
-		config: config,
+		config:   config,
+		protocol: NewBetProtocol(),
 	}
 	return client
 }
@@ -64,15 +66,30 @@ func (c *Client) StartClientLoop() {
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
 
-		// TODO: Modify the send to avoid short-write
-		fmt.Fprintf(
-			c.conn,
-			"[CLIENT %v] Message N°%v\n",
-			c.config.ID,
-			msgID,
+		betNumber, parseErr := strconv.Atoi(os.Getenv("NUMERO"))
+		if parseErr != nil {
+			return
+		}
+		bet := NewBet(
+			Player{
+				name:      os.Getenv("NOMBRE"),
+				lastname:  os.Getenv("APELLIDO"),
+				document:  os.Getenv("DOCUMENTO"),
+				birthdate: os.Getenv("NACIMIENTO"),
+			},
+			betNumber,
 		)
-		msg, err := bufio.NewReader(c.conn).ReadString('\n')
-		c.conn.Close()
+
+		// Send the bet to the server
+		err := c.protocol.SendBet(c.conn, bet)
+		if err != nil {
+			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+		recvBet, err := c.protocol.ReceiveBet(c.conn)
 
 		if err != nil {
 			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
@@ -82,9 +99,9 @@ func (c *Client) StartClientLoop() {
 			return
 		}
 
-		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-			c.config.ID,
-			msg,
+		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
+			recvBet.player.document,
+			recvBet.number,
 		)
 
 		// Wait a time between sending one message and the next one
