@@ -22,13 +22,12 @@ SERVER_SERVICE = {
     "entrypoint": "python3 /main.py",
     "environment": [
         "PYTHONUNBUFFERED=1",
-        "LOGGING_LEVEL=DEBUG"
     ],
     "networks": [
         NETWORK_NAME
     ],
     "volumes": [
-        "${PWD}/server/config.ini:/config.ini",
+        "./server/config.ini:/config.ini",
     ],
 }
 
@@ -47,7 +46,6 @@ def generar_client_service(cliente_id: int):
         "entrypoint": "/client",
         "environment": [
             f"CLI_ID={cliente_id}",
-            "CLI_LOG_LEVEL=DEBUG",
             "NOMBRE=${NOMBRE}",
             "APELLIDO=${APELLIDO}",
             "DOCUMENTO=${DOCUMENTO}",
@@ -61,7 +59,7 @@ def generar_client_service(cliente_id: int):
             "server"
         ],
         "volumes": [
-            "${PWD}/client/config.yaml:/config.yaml",
+            "./client/config.yaml:/config.yaml",
         ],
     }
 
