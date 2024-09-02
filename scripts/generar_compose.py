@@ -28,7 +28,7 @@ SERVER_SERVICE = {
         NETWORK_NAME
     ],
     "volumes": [
-        "${PWD}/server/config.ini:/config.ini",
+        "./server/config.ini:/config.ini",
     ],
 }
 
@@ -56,7 +56,7 @@ def generar_client_service(cliente_id: int):
             "server"
         ],
         "volumes": [
-            "${PWD}/client/config.yaml:/config.yaml",
+            "./client/config.yaml:/config.yaml",
         ],
     }
 
