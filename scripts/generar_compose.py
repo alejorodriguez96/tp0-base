@@ -22,7 +22,6 @@ SERVER_SERVICE = {
     "entrypoint": "python3 /main.py",
     "environment": [
         "PYTHONUNBUFFERED=1",
-        "LOGGING_LEVEL=DEBUG"
     ],
     "networks": [
         NETWORK_NAME
@@ -47,7 +46,6 @@ def generar_client_service(cliente_id: int):
         "entrypoint": "/client",
         "environment": [
             f"CLI_ID={cliente_id}",
-            "CLI_LOG_LEVEL=DEBUG"
         ],
         "networks": [
             NETWORK_NAME
