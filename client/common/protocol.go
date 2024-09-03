@@ -7,10 +7,14 @@ import (
 
 // Message types
 const (
-	SingleBet   = byte(0x01)
-	MultipleBet = byte(0x02)
-	Error       = byte(0x03)
-	BetACK      = byte(0x04)
+	SingleBet     = byte(0x01)
+	MultipleBet   = byte(0x02)
+	Error         = byte(0x03)
+	BetACK        = byte(0x04)
+	End           = byte(0x05)
+	ResultRequest = byte(0x06)
+	Result        = byte(0x07)
+	DrawInProcess = byte(0x08)
 )
 
 // BetProtocol entity that encapsulates the communication protocol with the server

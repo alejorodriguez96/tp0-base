@@ -8,12 +8,14 @@ from common import protocol, serializer, utils, errors
 class Server:
     """Class that represents a server that accepts connections and stores
     bets in a file"""
-    def __init__(self, port, listen_backlog):
+    def __init__(self, port, listen_backlog, clients_amount):
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._keep_running = True
+        self._clients_amount = clients_amount
+        self._clients_queue = []
         signal.signal(signal.SIGTERM, self._signal_handler)
 
     def _signal_handler(self, _signo, _stack_frame):
@@ -46,6 +48,7 @@ class Server:
         If a problem arises in the communication with the client, the
         client socket will also be closed
         """
+        close_at_end = True
         try:
             msg_type, msg = protocol.receive(client_sock)
             logging.info(f"Message type: {msg_type}")
@@ -53,10 +56,27 @@ class Server:
                 self.__handle_bet_message(client_sock, msg)
             elif msg_type == protocol.MessageType.MULTIPLE_BETS:
                 self.__handle_multiple_bets_message(client_sock, msg)
+            elif msg_type == protocol.MessageType.END:
+                logging.info(f"action: receive_message | result: success | msg: END")
+            elif msg_type == protocol.MessageType.RESULT_REQUEST:
+                close_at_end = False
+                self.__handle_result_request(client_sock)
         except errors.ProtocolReceiveError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
-            client_sock.close()
+            if close_at_end:
+                client_sock.close()
+    
+    def __handle_result_request(self, client_sock):
+        """
+        Handle a result request message
+
+        Function receives a message from a client socket and
+        processes it. Then, a response might be sent to the client if all the
+        clients have already sent their bets, otherwise the server will
+        queue the client socket to send the result later
+        """
+        # TODO Implement this method
     
     def __handle_bet_message(self, client_sock, msg):
         """

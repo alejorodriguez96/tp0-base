@@ -126,4 +126,44 @@ func (c *Client) StartClientLoop() {
 
 	}
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+	emptyMsg := []byte{}
+	retries := 0
+	for retries < 3 {
+		err := c.protocol.Send(c.conn, emptyMsg, End)
+		if err != nil {
+			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			retries++
+			continue
+		}
+		err = c.protocol.Send(c.conn, emptyMsg, ResultRequest)
+		if err != nil {
+			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			retries++
+			continue
+		}
+		break
+	}
+	msgType, msg, err := c.protocol.Receive(c.conn)
+	if err != nil {
+		log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return
+	}
+	if msgType[0] != Result {
+		log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			"Invalid message type",
+		)
+		return
+	}
+	log.Info(string(msg))
+
 }

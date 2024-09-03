@@ -13,6 +13,10 @@ class MessageType(Enum):
     MULTIPLE_BETS = 0x02
     ERROR = 0x03
     BET_ACK = 0x04
+    END = 0x05
+    RESULT_REQUEST = 0x06
+    RESULT = 0x07
+    IN_PROGRESS = 0x08
 
 def _byte_to_message_type(byte: bytes) -> MessageType:
     """
