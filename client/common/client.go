@@ -65,13 +65,17 @@ func (c *Client) Close() {
 func (c *Client) StartClientLoop() {
 	// There is an autoincremental msgID to identify every message sent
 	// Messages if the message amount threshold has not been surpassed
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
+	for {
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
 
 		betNumber, parseErr := strconv.Atoi(os.Getenv("NUMERO"))
 		if parseErr != nil {
-			return
+			log.Errorf("action: parse_bet_number | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				parseErr,
+			)
+			break
 		}
 		bet := NewBet(
 			Player{
@@ -92,24 +96,24 @@ func (c *Client) StartClientLoop() {
 				c.config.ID,
 				err,
 			)
-			return
+			break
 		}
 		msgType, _, err := c.protocol.Receive(c.conn)
 
 		if err != nil {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
-			return
+			continue
 		}
 
 		if msgType[0] != BetACK {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				"Invalid message type",
 			)
-			return
+			continue
 		}
 
 		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
