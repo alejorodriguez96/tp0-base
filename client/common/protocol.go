@@ -27,7 +27,7 @@ func (p *BetProtocol) Send(conn net.Conn, msg []byte, msgType byte) error {
 	if err != nil {
 		return err
 	}
-	fullMsg := []byte{SingleBet}
+	fullMsg := []byte{msgType}
 	fullMsg = append(fullMsg, totalLength...)
 	fullMsg = append(fullMsg, msg...)
 	remainingBytes := len(msg) + 5

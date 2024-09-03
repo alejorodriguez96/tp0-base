@@ -14,15 +14,21 @@ class MessageType(Enum):
     ERROR = 0x03
     BET_ACK = 0x04
 
-def receive(client_sock: socket.socket) -> bytes:
+def _byte_to_message_type(byte: bytes) -> MessageType:
+    """
+    Convert a byte to a MessageType
+    """
+    return MessageType(byte[0])
+
+def receive(client_sock: socket.socket) -> tuple[MessageType, bytes]:
     """
     Read message from a specific client socket
     """
     try:
         # First we receive the 5 first bytes to know the type and length of the message
         header = client_sock.recv(MESSAGE_TYPE_LEN + MESSAGE_LEN_LEN)
-        _msg_type = header[0]
-        msg_len = int.from_bytes(header[1:], byteorder='big')
+        msg_type = _byte_to_message_type(header[:MESSAGE_TYPE_LEN])
+        msg_len = int.from_bytes(header[MESSAGE_TYPE_LEN:], byteorder='big')
         # Then we receive the rest of the message
         remaining = msg_len
         msg = bytearray()
@@ -32,7 +38,7 @@ def receive(client_sock: socket.socket) -> bytes:
             remaining -= len(chunk)
     except Exception as e:
         raise ProtocolReceiveError("Error while receiving message") from e
-    return msg
+    return msg_type, msg
 
 def send(client_sock: socket.socket, msg: bytes, msg_type: MessageType):
     """

@@ -47,7 +47,25 @@ class Server:
         client socket will also be closed
         """
         try:
-            msg = protocol.receive(client_sock)
+            msg_type, msg = protocol.receive(client_sock)
+            logging.info(f"Message type: {msg_type}")
+            if msg_type == protocol.MessageType.BET:
+                self.__handle_bet_message(client_sock, msg)
+            elif msg_type == protocol.MessageType.MULTIPLE_BETS:
+                self.__handle_multiple_bets_message(client_sock, msg)
+        except errors.ProtocolReceiveError as e:
+            logging.error(f"action: receive_message | result: fail | error: {e}")
+        finally:
+            client_sock.close()
+    
+    def __handle_bet_message(self, client_sock, msg):
+        """
+        Handle a bet message
+
+        Function receives a message from a client socket and
+        processes it. Then, a response is sent to the client
+        """
+        try:
             bet = serializer.deserialize_bet(msg)
             utils.store_bets([bet])
             logging.info(
@@ -61,10 +79,27 @@ class Server:
             errors.ProtocolReceiveError
         ) as e:
             logging.error(f"action: apuesta_almacenada | result: fail | error: {e}")
-        except errors.ProtocolSendError as e:
-            logging.error(f"action: send_message | result: fail | error: {e}")
-        finally:
-            client_sock.close()
+            
+
+    def __handle_multiple_bets_message(self, client_sock, msg):
+        """
+        Handle a multiple bets message
+
+        Function receives a message from a client socket and
+        processes it. Then, a response is sent to the client
+        """
+        try:
+            bets = serializer.deserialize_multiple_bets(msg)
+            utils.store_bets(bets)
+            logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
+            protocol.send(client_sock, b'OK', protocol.MessageType.BET_ACK)
+            logging.info(f"action: send_message | result: success | msg: OK")
+        except Exception as e:
+            try:
+                logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
+            except NameError:
+                logging.error(f"action: apuesta_recibida | result: fail | cantidad: {e}")
+            protocol.send(client_sock, b'ERROR', protocol.MessageType.ERROR)
 
     def __accept_new_connection(self):
         """

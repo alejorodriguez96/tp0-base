@@ -60,6 +60,7 @@ def generar_client_service(cliente_id: int):
         ],
         "volumes": [
             "./client/config.yaml:/config.yaml",
+            "$./.data/" + f"agency-{cliente_id}.csv:/agency-{cliente_id}.csv",
         ],
     }
 

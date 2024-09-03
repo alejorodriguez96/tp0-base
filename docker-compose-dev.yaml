@@ -42,7 +42,8 @@ services:
       - server
 
     volumes: 
-      - ${PWD}/client/config.yaml:/config.yaml
+      - ./client/config.yaml:/config.yaml
+      - ./.data/agency-1.csv:/agency-1.csv
 
 
   client2: 
@@ -68,7 +69,8 @@ services:
       - server
 
     volumes: 
-      - ${PWD}/client/config.yaml:/config.yaml
+      - ./client/config.yaml:/config.yaml
+      - ./.data/agency-2.csv:/agency-2.csv
 
 
   client3: 
@@ -94,7 +96,8 @@ services:
       - server
 
     volumes: 
-      - ${PWD}/client/config.yaml:/config.yaml
+      - ./client/config.yaml:/config.yaml
+      - ./.data/agency-3.csv:/agency-3.csv
 
 
   client4: 
@@ -120,7 +123,8 @@ services:
       - server
 
     volumes: 
-      - ${PWD}/client/config.yaml:/config.yaml
+      - ./client/config.yaml:/config.yaml
+      - ./.data/agency-4.csv:/agency-4.csv
 
 
   client5: 
@@ -146,7 +150,8 @@ services:
       - server
 
     volumes: 
-      - ${PWD}/client/config.yaml:/config.yaml
+      - ./client/config.yaml:/config.yaml
+      - ./.data/agency-5.csv:/agency-5.csv
 
 
 

@@ -2,8 +2,6 @@ package common
 
 import (
 	"net"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/op/go-logging"
@@ -20,19 +18,28 @@ type ClientConfig struct {
 	LoopPeriod    time.Duration
 }
 
+// ClientChannels Channels used by the client
+type ClientChannels struct {
+	BetsChannel    chan []*Bet
+	RequestChannel chan bool
+	ErrorChannel   chan error
+}
+
 // Client Entity that encapsulates how
 type Client struct {
 	config     ClientConfig
 	conn       net.Conn
+	channels   ClientChannels
 	protocol   *BetProtocol
 	serializer *BetSerializer
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
-func NewClient(config ClientConfig) *Client {
+func NewClient(config ClientConfig, channels ClientChannels) *Client {
 	client := &Client{
 		config:     config,
+		channels:   channels,
 		protocol:   NewBetProtocol(),
 		serializer: NewBetSerializer(),
 	}
@@ -63,34 +70,28 @@ func (c *Client) Close() {
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
 	for {
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
 
-		betNumber, parseErr := strconv.Atoi(os.Getenv("NUMERO"))
-		if parseErr != nil {
-			log.Errorf("action: parse_bet_number | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				parseErr,
-			)
-			break
+		// Request the bets to the bet reader
+		c.channels.RequestChannel <- true
+		bets := <-c.channels.BetsChannel
+		err := <-c.channels.ErrorChannel
+		if err == nil && bets == nil {
+			break // No more bets to read
 		}
-		bet := NewBet(
-			Player{
-				name:      os.Getenv("NOMBRE"),
-				lastname:  os.Getenv("APELLIDO"),
-				document:  os.Getenv("DOCUMENTO"),
-				birthdate: os.Getenv("NACIMIENTO"),
-			},
-			betNumber,
-			c.config.NumericID,
-		)
+		if err != nil {
+			log.Errorf("action: request_bets | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
 
 		// Send the bet to the server
-		msg := c.serializer.Serialize(bet)
-		err := c.protocol.Send(c.conn, msg, SingleBet)
+		msg := c.serializer.SerializeBetChunk(bets)
+		err = c.protocol.Send(c.conn, msg, MultipleBet)
 		if err != nil {
 			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
 				c.config.ID,
@@ -116,9 +117,8 @@ func (c *Client) StartClientLoop() {
 			continue
 		}
 
-		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
-			bet.player.document,
-			bet.number,
+		log.Infof("action: apuesta_enviada | result: success | cantidad: %v",
+			len(bets),
 		)
 
 		// Wait a time between sending one message and the next one

@@ -26,6 +26,19 @@ def deserialize_bet(data: bytes) -> Bet:
     except Exception as e:
         raise SerializationError(f"Error while deserializing bet: {e}") from e
 
+def deserialize_multiple_bets(data: bytes) -> list[Bet]:
+    """
+    Deserialize multiple bets from a byte array.
+    """
+    try:
+        bets = []
+        records = data.split(Separator.RECORD.value)
+        for record in records:
+            bets.append(deserialize_bet(record))
+        return bets
+    except Exception as e:
+        raise SerializationError(f"Error while deserializing multiple bets: {e}") from e
+
 def serialize_bet(bet: Bet) -> bytes:
     """
     Serialize a bet to a byte array.
@@ -46,3 +59,17 @@ def serialize_bet(bet: Bet) -> bytes:
         return bytes(barray)
     except Exception as e:
         raise SerializationError(f"Error while serializing bet: {e}") from e
+
+def serialize_multiple_bets(bets: list[Bet]) -> bytes:
+    """
+    Serialize multiple bets to a byte array.
+    """
+    try:
+        barray = bytearray()
+        for bet in bets:
+            barray.extend(serialize_bet(bet))
+            barray.append(Separator.RECORD.value)
+        barray.pop()  # Remove last record separator
+        return bytes(barray)
+    except Exception as e:
+        raise SerializationError(f"Error while serializing multiple bets: {e}") from e

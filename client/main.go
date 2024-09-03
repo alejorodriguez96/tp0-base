@@ -39,6 +39,7 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "period")
 	v.BindEnv("loop", "amount")
 	v.BindEnv("log", "level")
+	v.BindEnv("batch", "maxAmount")
 
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
@@ -112,8 +113,26 @@ func main() {
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
 	}
+	clientChannels := common.ClientChannels{
+		BetsChannel:    make(chan []*common.Bet),
+		RequestChannel: make(chan bool),
+		ErrorChannel:   make(chan error),
+	}
 
-	client := common.NewClient(clientConfig)
+	client := common.NewClient(clientConfig, clientChannels)
+
+	betReader, err := common.NewBetReader(
+		clientConfig.NumericID,
+		v.GetInt("batch.maxAmount"),
+		fmt.Sprintf("./agency-%s.csv", clientConfig.ID),
+		clientChannels,
+	)
+	if err != nil {
+		log.Criticalf("action: create_bet_reader | result: fail | client_id: %v | error: %v", clientConfig.ID, err)
+		os.Exit(1)
+	}
+
+	go betReader.Start()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGTERM)
@@ -123,7 +142,11 @@ func main() {
 		case syscall.SIGTERM:
 			log.Debugf("Received SIGTERM signal. Closing client")
 			client.Close()
+			betReader.Close()
 			close(c)
+			close(clientChannels.BetsChannel)
+			close(clientChannels.ErrorChannel)
+			close(clientChannels.RequestChannel)
 			os.Exit(0)
 		}
 	}()
