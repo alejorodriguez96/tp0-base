@@ -1,3 +1,4 @@
+# pylint: disable=logging-fstring-interpolation
 import socket
 import logging
 import signal
@@ -5,6 +6,8 @@ from common import protocol, serializer, utils, errors
 
 
 class Server:
+    """Class that represents a server that accepts connections and stores
+    bets in a file"""
     def __init__(self, port, listen_backlog):
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -45,17 +48,18 @@ class Server:
         """
         try:
             msg = protocol.receive(client_sock)
-            logging.info(f"action: receive_message | result: success | msg: {msg}")
             bet = serializer.deserialize_bet(msg)
             utils.store_bets([bet])
-            logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")
+            logging.info(
+                "action: apuesta_almacenada | result: success "
+                f"| dni: {bet.document} | numero: {bet.number}"
+            )
             protocol.send(client_sock, b'OK', protocol.MessageType.BET_ACK)
-            logging.info(f"action: send_message | result: success | msg: OK")
-        except errors.ProtocolReceiveError as e:
-            logging.error(f"action: receive_message | result: fail | error: {e}")
-        except errors.SerializationError as e:
-            logging.error(f"action: apuesta_almacenada | result: fail | error: {e}")
-        except errors.StorageError as e:
+        except (
+            errors.SerializationError,
+            errors.StorageError,
+            errors.ProtocolReceiveError
+        ) as e:
             logging.error(f"action: apuesta_almacenada | result: fail | error: {e}")
         except errors.ProtocolSendError as e:
             logging.error(f"action: send_message | result: fail | error: {e}")
