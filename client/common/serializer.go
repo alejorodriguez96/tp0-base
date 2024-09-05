@@ -88,6 +88,9 @@ func (s *ResultSerializer) DeserializeDrawResult(barray []byte) (*DrawResult, er
 	split := bytes.Split(barray, []byte{RecordSeparator})
 	winners := []string{}
 	for _, winner := range split {
+		if len(winner) == 0 {
+			continue
+		}
 		winners = append(winners, string(winner))
 	}
 	return DrawResultFromDocuments(winners), nil
