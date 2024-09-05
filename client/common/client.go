@@ -74,96 +74,153 @@ func (c *Client) StartClientLoop() {
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
 
-		// Request the bets to the bet reader
-		c.channels.RequestChannel <- true
-		bets := <-c.channels.BetsChannel
-		err := <-c.channels.ErrorChannel
-		if err == nil && bets == nil {
-			break // No more bets to read
-		}
+		moreBets, err := c.sendChunk()
 		if err != nil {
-			log.Errorf("action: request_bets | result: fail | client_id: %v | error: %v",
+			log.Errorf("action: send_chunk | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
 			return
 		}
-
-		// Send the bet to the server
-		msg := c.serializer.SerializeBetChunk(bets)
-		err = c.protocol.Send(c.conn, msg, MultipleBet)
-		if err != nil {
-			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
+		if !moreBets {
 			break
 		}
-		msgType, _, err := c.protocol.Receive(c.conn)
-
-		if err != nil {
-			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			continue
-		}
-
-		if msgType[0] != BetACK {
-			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				"Invalid message type",
-			)
-			continue
-		}
-
-		log.Infof("action: apuesta_enviada | result: success | cantidad: %v",
-			len(bets),
-		)
 
 		// Wait a time between sending one message and the next one
-		time.Sleep(c.config.LoopPeriod)
+		//time.Sleep(c.config.LoopPeriod)
 
 	}
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
-	emptyMsg := []byte{}
-	retries := 0
-	for retries < 3 {
-		err := c.protocol.Send(c.conn, emptyMsg, End)
+	err := c.sendEndMessage()
+	if err != nil {
+		return
+	}
+
+	for {
+		c.createClientSocket()
+		response, err := c.pollResults()
 		if err != nil {
-			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
+			log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
-			retries++
+			return
+		}
+		if response == nil {
+			time.Sleep(c.config.LoopPeriod)
 			continue
 		}
-		err = c.protocol.Send(c.conn, emptyMsg, ResultRequest)
+		resultSerializer := NewResultSerializer()
+		result, err := resultSerializer.DeserializeDrawResult(response)
+		if err != nil {
+			log.Errorf("action: consulta_ganadores | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+		log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v",
+			result.winnerCount(),
+		)
+
+		break
+	}
+
+}
+
+// sendChunk Sends a chunk of bets to the server
+//
+// Returns true if there are more bets to read, false otherwise
+func (c *Client) sendChunk() (bool, error) {
+	// Request the bets to the bet reader
+	c.channels.RequestChannel <- true
+	bets := <-c.channels.BetsChannel
+	err := <-c.channels.ErrorChannel
+	if err == nil && bets == nil {
+		return false, nil // No more bets to read
+	}
+	if err != nil {
+		log.Errorf("action: request_bets | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return false, err
+	}
+
+	// Send the bet to the server
+	msg := c.serializer.SerializeBetChunk(bets)
+	err = c.protocol.Send(c.conn, msg, MultipleBet)
+	if err != nil {
+		log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return false, err
+	}
+	msgType, _, err := c.protocol.Receive(c.conn)
+
+	if err != nil {
+		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			err,
+		)
+		return false, err
+	}
+
+	if msgType[0] != BetACK {
+		log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
+			c.config.ID,
+			"Invalid message type",
+		)
+		return false, ErrUnexpectedResponse
+	}
+
+	log.Infof("action: apuesta_enviada | result: success | cantidad: %v",
+		len(bets),
+	)
+	return true, nil
+}
+
+// sendEndMessage Sends an end message to the server
+func (c *Client) sendEndMessage() error {
+	retries := 0
+	for {
+		err := c.protocol.Send(c.conn, []byte{byte(c.config.NumericID)}, End)
 		if err != nil {
 			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
 			retries++
+			if retries > 3 {
+				log.Errorf("Server is not responding. Exiting")
+				return err
+			}
 			continue
 		}
 		break
 	}
+	return nil
+}
+
+// pollResults Polls the server for results
+func (c *Client) pollResults() ([]byte, error) {
+	err := c.protocol.Send(c.conn, []byte{byte(c.config.NumericID)}, ResultRequest)
+	if err != nil {
+		return nil, err
+	}
+
 	msgType, msg, err := c.protocol.Receive(c.conn)
 	if err != nil {
-		log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-		return
+		return nil, err
 	}
-	if msgType[0] != Result {
-		log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			"Invalid message type",
-		)
-		return
-	}
-	log.Info(string(msg))
 
+	if msgType[0] == DrawInProcess {
+		return nil, nil
+	}
+
+	if msgType[0] != Result {
+		return nil, ErrUnexpectedResponse
+	}
+
+	return msg, nil
 }

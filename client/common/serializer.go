@@ -77,3 +77,18 @@ func (s *BetSerializer) DeserializeBetChunk(barray []byte) ([]*Bet, error) {
 	}
 	return bets, nil
 }
+
+// ResultSerializer serializes a result into a byte array
+type ResultSerializer struct{}
+
+func NewResultSerializer() *ResultSerializer { return &ResultSerializer{} }
+
+// DeserializeResult deserializes a byte array into a result
+func (s *ResultSerializer) DeserializeDrawResult(barray []byte) (*DrawResult, error) {
+	split := bytes.Split(barray, []byte{RecordSeparator})
+	winners := []string{}
+	for _, winner := range split {
+		winners = append(winners, string(winner))
+	}
+	return DrawResultFromDocuments(winners), nil
+}

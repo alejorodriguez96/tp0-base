@@ -2,8 +2,9 @@
 import socket
 import logging
 import signal
-from common import protocol, serializer, utils, errors
-
+from common import protocol, utils, errors
+from serializers import bet_serializer, get_agency_id_from_message, result_serializer
+from model.result import DrawResult
 
 class Server:
     """Class that represents a server that accepts connections and stores
@@ -15,7 +16,7 @@ class Server:
         self._server_socket.listen(listen_backlog)
         self._keep_running = True
         self._clients_amount = clients_amount
-        self._clients_queue = []
+        self._clients_finished = set()
         signal.signal(signal.SIGTERM, self._signal_handler)
 
     def _signal_handler(self, _signo, _stack_frame):
@@ -57,17 +58,27 @@ class Server:
             elif msg_type == protocol.MessageType.MULTIPLE_BETS:
                 self.__handle_multiple_bets_message(client_sock, msg)
             elif msg_type == protocol.MessageType.END:
-                logging.info(f"action: receive_message | result: success | msg: END")
+                self.__handle_end_message(msg)
             elif msg_type == protocol.MessageType.RESULT_REQUEST:
                 close_at_end = False
-                self.__handle_result_request(client_sock)
+                self.__handle_result_request(client_sock, msg)
         except errors.ProtocolReceiveError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
             if close_at_end:
                 client_sock.close()
-    
-    def __handle_result_request(self, client_sock):
+
+
+    def __handle_end_message(self, msg):
+        """
+        Handle an end message
+        """
+        agency_id = get_agency_id_from_message(msg)
+        logging.info(f"action: end_message | result: success | agency_id: {agency_id}")
+        self._clients_finished.add(agency_id)
+
+
+    def __handle_result_request(self, client_sock, msg):
         """
         Handle a result request message
 
@@ -76,8 +87,20 @@ class Server:
         clients have already sent their bets, otherwise the server will
         queue the client socket to send the result later
         """
-        # TODO Implement this method
-    
+        agency_id = get_agency_id_from_message(msg)
+        try:
+            if len(self._clients_finished) == self._clients_amount:
+                bets = utils.load_bets()
+                result = DrawResult.from_bet_list(bets)
+                msg = result_serializer.serialize_winners(result.get_winners_from_agency(agency_id))
+                protocol.send(client_sock, msg, protocol.MessageType.RESULT)
+                logging.info(f"action: result_request | result: success | agency_id: {agency_id}")
+            else:
+                protocol.send(client_sock, b'', protocol.MessageType.IN_PROGRESS)
+                logging.info(f"action: result_request | result: in_progress | agency_id: {agency_id}")
+        except errors.ProtocolSendError as e:
+            logging.error(f"action: result_request | result: fail | error: {e}")
+
     def __handle_bet_message(self, client_sock, msg):
         """
         Handle a bet message
@@ -86,7 +109,7 @@ class Server:
         processes it. Then, a response is sent to the client
         """
         try:
-            bet = serializer.deserialize_bet(msg)
+            bet = bet_serializer.deserialize_bet(msg)
             utils.store_bets([bet])
             logging.info(
                 "action: apuesta_almacenada | result: success "
@@ -109,12 +132,17 @@ class Server:
         processes it. Then, a response is sent to the client
         """
         try:
-            bets = serializer.deserialize_multiple_bets(msg)
+            bets = bet_serializer.deserialize_multiple_bets(msg)
             utils.store_bets(bets)
             logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
             protocol.send(client_sock, b'OK', protocol.MessageType.BET_ACK)
-            logging.info(f"action: send_message | result: success | msg: OK")
-        except Exception as e:
+            logging.info("action: send_message | result: success | msg: OK")
+        except (
+            errors.SerializationError,
+            errors.StorageError,
+            errors.ProtocolReceiveError,
+            OSError
+        ) as e:
             try:
                 logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
             except NameError:

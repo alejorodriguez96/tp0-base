@@ -1,13 +1,7 @@
-from enum import Enum
+"""Module to serialize/deserialize bets."""
 from common.utils import Bet
 from common.errors import SerializationError
-
-class Separator(Enum):
-    """
-    Separator used to serialize/deserialize bets.
-    """
-    FIELD = b'\x1F'
-    RECORD = b'\x1E'
+from serializers import Separator
 
 def deserialize_bet(data: bytes) -> Bet:
     """
@@ -73,3 +67,4 @@ def serialize_multiple_bets(bets: list[Bet]) -> bytes:
         return bytes(barray)
     except Exception as e:
         raise SerializationError(f"Error while serializing multiple bets: {e}") from e
+
