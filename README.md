@@ -79,7 +79,7 @@ make docker-compose-up
 Nota: Así como en el ejercicio 6, se debe descomprimir el archivo `datasets.zip` en la carpeta `.data` del proyecto.
 
 ### Ejercicio 8
-[Ultimo commit de la rama ej8](https://github.com/alejorodriguez96/tp0-base/commit/756d53388fffec77ba0097ddeaef395ded0aabe4)
+[Ultimo commit de la rama ej8](https://github.com/alejorodriguez96/tp0-base/commit/50a94766cb96af43b06d273a1927f904c9b01c41)
 
 Para ejecutar el proyecto con la nueva lógica de negocio se debe correr el siguiente comando:
 ```bash
