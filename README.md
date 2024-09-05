@@ -1,5 +1,96 @@
 # TP0: Docker + Comunicaciones + Concurrencia
 
+## Ejecución de los ejercicios
+
+### Ejercicio 1
+[Ultimo commit de la rama ej1](https://github.com/alejorodriguez96/tp0-base/commit/03584460660637361fc7aaa85a1b9a2a125138b6)
+
+Para ejecutar el script `generar-compose.sh` se debe correr el siguiente comando:
+```bash
+./generar-compose.sh <ruta_archivo_salida> <cantidad_clientes>
+```
+Por ejemplo:
+```bash
+./generar-compose.sh docker-compose-dev.yaml 5
+```
+
+### Ejercicio 2
+[Ultimo commit de la rama ej2](https://github.com/alejorodriguez96/tp0-base/commit/1a241c61a9c2a187ea4c31b9b62dc77d416da1bf)
+
+Para ejecutar el proyecto con la configuración inyectada desde el archivo `config.yaml` se debe correr el siguiente comando:
+```bash
+make docker-compose-up
+```
+Si se desea verificar que el cambio en la configuración impacta sin necesidad de volver a buildear las imágenes, se puede correr los siguientes comandos:
+```bash
+make docker-compose-down # Detiene los containers
+docker-compose -f docker-compose-dev.yaml up -d # Vuelve a levantar los containers
+```
+_Esto es porque el comando `make docker-compose-up` buildea las imágenes antes de levantar los containers._
+
+### Ejercicio 3
+[Ultimo commit de la rama ej3](https://github.com/alejorodriguez96/tp0-base/commit/07c9681502fae67d4afd826be8bfede6c251a6d2)
+
+Para ejecutar el script `validar-echo-server.sh` se debe correr el siguiente comando:
+```bash
+./validar-echo-server.sh
+```
+Nota 1: El script asume que el servidor está corriendo en el puerto 12345.
+Nota 2: La primera ejecución descargará una imagen de alpine con netcat, por lo que puede tardar un poco más.
+
+### Ejercicio 4
+[Ultimo commit de la rama ej4](https://github.com/alejorodriguez96/tp0-base/commit/746645beac06fb7dca98a08ac0d96b5344f570d8)
+
+Para detener los containers enviando la señal SIGTERM se debe correr el siguiente comando:
+```bash
+make docker-compose-down
+```
+
+Por defecto el tiempo es de 1 segundo, pero se puede modificar el tiempo de espera con el flag `-t`:
+```bash
+docker-compose -f docker-compose-dev.yaml down -t 5
+```
+
+### Ejercicio 5
+[Ultimo commit de la rama ej5](https://github.com/alejorodriguez96/tp0-base/commit/798fe72782990ddd855cfd0425e67526c42de8c7)
+
+Para ejecutar el proyecto con la nueva lógica de negocio se debe correr el siguiente comando:
+```bash
+make docker-compose-up
+```
+Con eso se veran los logs de los clientes y el servidor interactuando. Cabe destacar que las variables de entorno son las mismas para todos los clientes y están definidas en el archivo `docker-compose-dev.yaml`.
+
+### Ejercicio 6
+[Ultimo commit de la rama ej6](https://github.com/alejorodriguez96/tp0-base/commit/81f7854c4331d32f3c255b6ce7f92b66eb10329e)
+
+Primero se debe descomprimir el archivo `datasets.zip` en la carpeta `.data` del proyecto. Luego se debe correr el siguiente comando:
+```bash
+make docker-compose-up
+```
+Con eso se veran los logs de los clientes y el servidor interactuando. Cabe destacar que el tamaño máximo de los batchs es de 8kB. Como el protocolo de comunicación no es de ancho fijo, no se puede establecer un tamaño de batch fijo, pero se limitó el número de apuestas por batch para que no exceda los 8kB.
+
+### Ejercicio 7
+[Ultimo commit de la rama ej7](https://github.com/alejorodriguez96/tp0-base/commit/817bdf14bddaecf0b0496c0bc5fdef21fbecadc9)
+
+Para ejecutar el proyecto con la nueva lógica de negocio se debe correr el siguiente comando:
+```bash
+make docker-compose-up
+```
+Nota: Así como en el ejercicio 6, se debe descomprimir el archivo `datasets.zip` en la carpeta `.data` del proyecto.
+
+### Ejercicio 8
+[Ultimo commit de la rama ej8](https://github.com/alejorodriguez96/tp0-base/commit/756d53388fffec77ba0097ddeaef395ded0aabe4)
+
+Para ejecutar el proyecto con la nueva lógica de negocio se debe correr el siguiente comando:
+```bash
+make docker-compose-up
+```
+Nota: Así como en los ejercicios 5 y 6, se debe descomprimir el archivo `datasets.zip` en la carpeta `.data` del proyecto.
+
+---
+
+# Inicio de README original
+
 En el presente repositorio se provee un ejemplo de cliente-servidor el cual corre en containers con la ayuda de [docker-compose](https://docs.docker.com/compose/). El mismo es un ejemplo práctico brindado por la cátedra para que los alumnos tengan un esqueleto básico de cómo armar un proyecto de cero en donde todas las dependencias del mismo se encuentren encapsuladas en containers. El cliente (Golang) y el servidor (Python) fueron desarrollados en diferentes lenguajes simplemente para mostrar cómo dos lenguajes de programación pueden convivir en el mismo proyecto con la ayuda de containers.
 
 Por otro lado, se presenta una guía de ejercicios que los alumnos deberán resolver teniendo en cuenta las consideraciones generales descriptas al pie de este archivo.
