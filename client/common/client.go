@@ -67,7 +67,10 @@ func (c *Client) StartClientLoop() {
 	// Messages if the message amount threshold has not been surpassed
 	for {
 		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
+		err := c.createClientSocket()
+		if err != nil {
+			return
+		}
 
 		betNumber, parseErr := strconv.Atoi(os.Getenv("NUMERO"))
 		if parseErr != nil {
@@ -90,7 +93,7 @@ func (c *Client) StartClientLoop() {
 
 		// Send the bet to the server
 		msg := c.serializer.Serialize(bet)
-		err := c.protocol.Send(c.conn, msg, SingleBet)
+		err = c.protocol.Send(c.conn, msg, SingleBet)
 		if err != nil {
 			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
 				c.config.ID,
