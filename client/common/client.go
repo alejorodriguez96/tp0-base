@@ -71,6 +71,7 @@ func (c *Client) StartClientLoop() {
 		if err != nil {
 			return
 		}
+		stream := NewSocketStream(c.conn)
 
 		betNumber, parseErr := strconv.Atoi(os.Getenv("NUMERO"))
 		if parseErr != nil {
@@ -93,7 +94,7 @@ func (c *Client) StartClientLoop() {
 
 		// Send the bet to the server
 		msg := c.serializer.Serialize(bet)
-		err = c.protocol.Send(c.conn, msg, SingleBet)
+		err = c.protocol.Send(stream, msg, SingleBet)
 		if err != nil {
 			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
 				c.config.ID,
@@ -101,7 +102,7 @@ func (c *Client) StartClientLoop() {
 			)
 			break
 		}
-		msgType, _, err := c.protocol.Receive(c.conn)
+		msgType, _, err := c.protocol.Receive(stream)
 
 		if err != nil {
 			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
