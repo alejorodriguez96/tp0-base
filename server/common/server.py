@@ -2,7 +2,7 @@
 import socket
 import logging
 import signal
-from common import protocol, serializer, utils, errors
+from common import protocol, serializer, utils, errors, communication
 
 
 class Server:
@@ -47,14 +47,15 @@ class Server:
         client socket will also be closed
         """
         try:
-            msg = protocol.receive(client_sock)
+            stream = communication.SocketStream(client_sock)
+            msg = protocol.receive(stream)
             bet = serializer.deserialize_bet(msg)
             utils.store_bets([bet])
             logging.info(
                 "action: apuesta_almacenada | result: success "
                 f"| dni: {bet.document} | numero: {bet.number}"
             )
-            protocol.send(client_sock, b'OK', protocol.MessageType.BET_ACK)
+            protocol.send(stream, b'OK', protocol.MessageType.BET_ACK)
         except (
             errors.SerializationError,
             errors.StorageError,
