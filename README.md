@@ -52,7 +52,7 @@ docker-compose -f docker-compose-dev.yaml down -t 5
 ```
 
 ### Ejercicio 5
-[Ultimo commit de la rama ej5](https://github.com/alejorodriguez96/tp0-base/commit/798fe72782990ddd855cfd0425e67526c42de8c7)
+[Ultimo commit de la rama ej5](https://github.com/alejorodriguez96/tp0-base/commit/95e9a5384beb0682aff2c939d47148d588803f85)
 
 Para ejecutar el proyecto con la nueva lógica de negocio se debe correr el siguiente comando:
 ```bash
@@ -61,7 +61,7 @@ make docker-compose-up
 Con eso se veran los logs de los clientes y el servidor interactuando. Cabe destacar que las variables de entorno son las mismas para todos los clientes y están definidas en el archivo `docker-compose-dev.yaml`.
 
 ### Ejercicio 6
-[Ultimo commit de la rama ej6](https://github.com/alejorodriguez96/tp0-base/commit/81f7854c4331d32f3c255b6ce7f92b66eb10329e)
+[Ultimo commit de la rama ej6](https://github.com/alejorodriguez96/tp0-base/commit/e935f000078379a46f08033424c66378bef180c7)
 
 Primero se debe descomprimir el archivo `datasets.zip` en la carpeta `.data` del proyecto. Luego se debe correr el siguiente comando:
 ```bash
@@ -70,7 +70,7 @@ make docker-compose-up
 Con eso se veran los logs de los clientes y el servidor interactuando. Cabe destacar que el tamaño máximo de los batchs es de 8kB. Como el protocolo de comunicación no es de ancho fijo, no se puede establecer un tamaño de batch fijo, pero se limitó el número de apuestas por batch para que no exceda los 8kB.
 
 ### Ejercicio 7
-[Ultimo commit de la rama ej7](https://github.com/alejorodriguez96/tp0-base/commit/817bdf14bddaecf0b0496c0bc5fdef21fbecadc9)
+[Ultimo commit de la rama ej7](https://github.com/alejorodriguez96/tp0-base/commit/62529cba3990e6b1000a350e0c7b01e62b4155bb)
 
 Para ejecutar el proyecto con la nueva lógica de negocio se debe correr el siguiente comando:
 ```bash
