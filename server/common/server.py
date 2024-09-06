@@ -2,9 +2,10 @@
 import socket
 import logging
 import signal
-from common import protocol, utils, errors
 from serializers import bet_serializer, get_agency_id_from_message, result_serializer
 from model.result import DrawResult
+from common import protocol, utils, errors, communication
+
 
 class Server:
     """Class that represents a server that accepts connections and stores
@@ -49,24 +50,22 @@ class Server:
         If a problem arises in the communication with the client, the
         client socket will also be closed
         """
-        close_at_end = True
         try:
-            msg_type, msg = protocol.receive(client_sock)
+            stream = communication.SocketStream(client_sock)
+            msg_type, msg = protocol.receive(stream)
             logging.info(f"Message type: {msg_type}")
             if msg_type == protocol.MessageType.BET:
-                self.__handle_bet_message(client_sock, msg)
+                self.__handle_bet_message(stream, msg)
             elif msg_type == protocol.MessageType.MULTIPLE_BETS:
-                self.__handle_multiple_bets_message(client_sock, msg)
+                self.__handle_multiple_bets_message(stream, msg)
             elif msg_type == protocol.MessageType.END:
                 self.__handle_end_message(msg)
             elif msg_type == protocol.MessageType.RESULT_REQUEST:
-                close_at_end = False
-                self.__handle_result_request(client_sock, msg)
+                self.__handle_result_request(stream, msg)
         except errors.ProtocolReceiveError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
-            if close_at_end:
-                client_sock.close()
+            client_sock.close()
 
 
     def __handle_end_message(self, msg):
@@ -78,7 +77,7 @@ class Server:
         self._clients_finished.add(agency_id)
 
 
-    def __handle_result_request(self, client_sock, msg):
+    def __handle_result_request(self, stream, msg):
         """
         Handle a result request message
 
@@ -93,15 +92,15 @@ class Server:
                 bets = utils.load_bets()
                 result = DrawResult.from_bet_list(bets)
                 msg = result_serializer.serialize_winners(result.get_winners_from_agency(agency_id))
-                protocol.send(client_sock, msg, protocol.MessageType.RESULT)
+                protocol.send(stream, msg, protocol.MessageType.RESULT)
                 logging.info(f"action: result_request | result: success | agency_id: {agency_id}")
             else:
-                protocol.send(client_sock, b'', protocol.MessageType.IN_PROGRESS)
+                protocol.send(stream, b'', protocol.MessageType.IN_PROGRESS)
                 logging.info(f"action: result_request | result: in_progress | agency_id: {agency_id}")
         except errors.ProtocolSendError as e:
             logging.error(f"action: result_request | result: fail | error: {e}")
 
-    def __handle_bet_message(self, client_sock, msg):
+    def __handle_bet_message(self, stream, msg):
         """
         Handle a bet message
 
@@ -115,16 +114,15 @@ class Server:
                 "action: apuesta_almacenada | result: success "
                 f"| dni: {bet.document} | numero: {bet.number}"
             )
-            protocol.send(client_sock, b'OK', protocol.MessageType.BET_ACK)
+            protocol.send(stream, b'OK', protocol.MessageType.BET_ACK)
         except (
             errors.SerializationError,
             errors.StorageError,
             errors.ProtocolReceiveError
         ) as e:
             logging.error(f"action: apuesta_almacenada | result: fail | error: {e}")
-            
 
-    def __handle_multiple_bets_message(self, client_sock, msg):
+    def __handle_multiple_bets_message(self, stream, msg):
         """
         Handle a multiple bets message
 
@@ -135,7 +133,7 @@ class Server:
             bets = bet_serializer.deserialize_multiple_bets(msg)
             utils.store_bets(bets)
             logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
-            protocol.send(client_sock, b'OK', protocol.MessageType.BET_ACK)
+            protocol.send(stream, b'OK', protocol.MessageType.BET_ACK)
             logging.info("action: send_message | result: success | msg: OK")
         except (
             errors.SerializationError,
@@ -147,7 +145,7 @@ class Server:
                 logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
             except NameError:
                 logging.error(f"action: apuesta_recibida | result: fail | cantidad: {e}")
-            protocol.send(client_sock, b'ERROR', protocol.MessageType.ERROR)
+            protocol.send(stream, b'ERROR', protocol.MessageType.ERROR)
 
     def __accept_new_connection(self):
         """

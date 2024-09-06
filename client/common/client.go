@@ -72,7 +72,10 @@ func (c *Client) Close() {
 func (c *Client) StartClientLoop() {
 	for {
 		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
+		err := c.createClientSocket()
+		if err != nil {
+			return
+		}
 
 		moreBets, err := c.sendChunk()
 		if err != nil {
