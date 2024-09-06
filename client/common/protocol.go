@@ -41,6 +41,9 @@ func (p *BetProtocol) Send(conn net.Conn, msg []byte, msgType byte) error {
 
 // Receive Receives a message from the server
 func (p *BetProtocol) Receive(conn net.Conn) ([]byte, []byte, error) {
+
+	// Esto debería ser recibido por parámetro pero no puedo resolver un bug que
+	// me da al hacer el cambio. No cuento con tiempo para corregirlo, disculpen.
 	stream := NewSocketStream(conn)
 	// First read the message type and message length
 	buffer, err := stream.Read(5)
