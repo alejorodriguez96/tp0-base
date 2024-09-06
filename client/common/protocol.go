@@ -1,10 +1,5 @@
 package common
 
-import (
-	"io"
-	"net"
-)
-
 // Message types
 const (
 	SingleBet   = byte(0x01)
@@ -22,7 +17,7 @@ func NewBetProtocol() *BetProtocol {
 }
 
 // Send Sends a message to the server
-func (p *BetProtocol) Send(conn net.Conn, msg []byte, msgType byte) error {
+func (p *BetProtocol) Send(stream BaseStream, msg []byte, msgType byte) error {
 	totalLength, err := lengthToBytes(len(msg))
 	if err != nil {
 		return err
@@ -30,27 +25,20 @@ func (p *BetProtocol) Send(conn net.Conn, msg []byte, msgType byte) error {
 	fullMsg := []byte{msgType}
 	fullMsg = append(fullMsg, totalLength...)
 	fullMsg = append(fullMsg, msg...)
-	remainingBytes := len(msg) + 5
-	for remainingBytes > 0 {
-		n, err := conn.Write(fullMsg)
-		if err != nil {
-			return err
-		}
-		remainingBytes -= n
+	err = stream.Write(fullMsg)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
 // Receive Receives a message from the server
-func (p *BetProtocol) Receive(conn net.Conn) ([]byte, []byte, error) {
-	var buffer []byte
+func (p *BetProtocol) Receive(stream BaseStream) ([]byte, []byte, error) {
 	// First read the message type and message length
-	tmp := make([]byte, 5)
-	_, err := conn.Read(tmp)
+	buffer, err := stream.Read(5)
 	if err != nil {
 		return nil, nil, err
 	}
-	buffer = append(buffer, tmp...)
 	msgType := buffer[0]
 	msgLength, err := bytesToLength(buffer[1:])
 	if err != nil {
@@ -58,20 +46,9 @@ func (p *BetProtocol) Receive(conn net.Conn) ([]byte, []byte, error) {
 	}
 
 	// Read the rest of the message
-	remaningBytes := msgLength
-	buffer = buffer[:0]
-	for remaningBytes > 0 {
-		bytesToRead := max(1024, remaningBytes)
-		tmp := make([]byte, bytesToRead)
-		r, err := conn.Read(tmp)
-		if err == io.EOF && remaningBytes > 0 {
-			return nil, nil, ErrInvalidMessage
-		}
-		if err != nil {
-			return nil, nil, err
-		}
-		buffer = append(buffer, tmp[:r]...)
-		remaningBytes -= r
+	buffer, err = stream.Read(msgLength)
+	if err != nil {
+		return nil, nil, err
 	}
 	return []byte{msgType}, buffer, nil
 }

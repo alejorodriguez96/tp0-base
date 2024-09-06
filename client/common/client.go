@@ -72,12 +72,16 @@ func (c *Client) Close() {
 func (c *Client) StartClientLoop() {
 	for {
 		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
+		err := c.createClientSocket()
+		if err != nil {
+			return
+		}
+		stream := NewSocketStream(c.conn)
 
 		// Request the bets to the bet reader
 		c.channels.RequestChannel <- true
 		bets := <-c.channels.BetsChannel
-		err := <-c.channels.ErrorChannel
+		err = <-c.channels.ErrorChannel
 		if err == nil && bets == nil {
 			break // No more bets to read
 		}
@@ -91,7 +95,7 @@ func (c *Client) StartClientLoop() {
 
 		// Send the bet to the server
 		msg := c.serializer.SerializeBetChunk(bets)
-		err = c.protocol.Send(c.conn, msg, MultipleBet)
+		err = c.protocol.Send(stream, msg, MultipleBet)
 		if err != nil {
 			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
 				c.config.ID,
@@ -99,7 +103,7 @@ func (c *Client) StartClientLoop() {
 			)
 			break
 		}
-		msgType, _, err := c.protocol.Receive(c.conn)
+		msgType, _, err := c.protocol.Receive(stream)
 
 		if err != nil {
 			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
